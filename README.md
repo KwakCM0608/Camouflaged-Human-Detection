@@ -22,7 +22,7 @@
 
 따라서 `ZoomNeXt-CamLock`은 첫 frame에 정답 mask나 box를 넣고 시작하는 semi-supervised VOS 모델이 아니라, **prompt 없이 시작해서 실시간 causal 방식으로 위장 객체 mask를 추정하는 모델**이다.
 
-## 왜 MoCH를 평가 데이터셋으로 사용했는가
+## MoCH
 
 `MoCH`는 Moving Camouflaged Human Object Detection 데이터셋으로, 위장된 사람이 포함된 video sequence와 frame별 binary mask annotation을 제공한다. 전체 데이터는 98개 video sequence와 4,091개 human-annotated frame으로 구성되어 있고, `Train`, `Validation`, `Test` split을 가진다.
 
@@ -77,7 +77,7 @@ motion onset / lock-in 정책
 최종 mask
 ```
 
-## 왜 ZoomNeXt를 1차 mask 생성기로 쓰는가
+## ZoomNeXt
 
 `ZoomNeXt`는 camouflage object detection 계열에서 강한 single-frame mask를 제공한다. 이 프로젝트에서는 다음 이유로 baseline으로 사용했다.
 
