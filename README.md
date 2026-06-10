@@ -22,6 +22,22 @@
 
 따라서 `ZoomNeXt-CamLock`은 첫 frame에 정답 mask나 box를 넣고 시작하는 semi-supervised VOS 모델이 아니라, **prompt 없이 시작해서 실시간 causal 방식으로 위장 객체 mask를 추정하는 모델**이다.
 
+## 왜 MoCH를 평가 데이터셋으로 사용했는가
+
+`MoCH`는 Moving Camouflaged Human Object Detection 데이터셋으로, 위장된 사람이 포함된 video sequence와 frame별 binary mask annotation을 제공한다. 전체 데이터는 98개 video sequence와 4,091개 human-annotated frame으로 구성되어 있고, `Train`, `Validation`, `Test` split을 가진다.
+
+이 프로젝트에서 MoCH를 평가 데이터셋으로 사용한 이유는 다음과 같다.
+
+| 이유 | 설명 |
+|---|---|
+| 실제 목표와 가장 가까운 평가 조건 | 정적인 단일 이미지보다, 움직임이 있는 video camouflaged object/human detection 상황을 직접 평가할 수 있다. |
+| onset 문제를 보기 좋음 | 객체가 초반에는 배경에 숨어 있다가 움직임 이후 더 드러나는 sequence가 있어, onset 전/후 성능 차이를 분석하기 적합하다. |
+| 실시간 causal 추론 검증 | frame 순서가 있는 video이므로 현재/과거 frame만 사용하는 실시간 추론 조건을 평가할 수 있다. |
+| prompt-free 성능 검증 | 첫 frame prompt 없이 raw mask와 temporal belief만으로 객체를 찾는 설정이 실제로 동작하는지 확인할 수 있다. |
+| source 학습셋과 분리 | 학습은 `MoCA`, `CAD`, `CAMotion`으로만 하고 MoCH는 평가에만 사용하여, 모델이 새로운 camouflaged video domain으로 일반화되는지 확인할 수 있다. |
+
+즉 MoCH는 단순히 점수를 내기 위한 테스트셋이 아니라, `ZoomNeXt-CamLock`이 해결하려는 핵심 문제인 **prompt 없는 실시간 위장 객체 추적, onset 전후 안정성, 새로운 video domain 일반화**를 동시에 확인할 수 있는 평가셋이다.
+
 ## 핵심 아이디어
 
 위장 객체 영상에서는 초반 frame에서 객체와 배경이 거의 구분되지 않기 때문에, 단일 frame segmentation 모델이 객체를 너무 작게 잡거나 배경을 객체처럼 잡는 경우가 많다. 이 1차 mask를 그대로 쓰면 이후 onset 판단도 그 mask에 끌려가서 불안정해진다.
