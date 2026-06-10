@@ -225,6 +225,37 @@ loss =
 | Failure | `-0.121593` |
 | Boundary F1 | `+0.022176` |
 
+onset 전/후로 나누면 개선 양상이 더 분명하다. 여기서는 `early` 구간을 onset 전, `middle+late` 구간을 onset 후로 묶었다.
+
+| 구간 | model | frames | IoU | Dice | Recall | Failure | Boundary F1 |
+|---|---|---:|---:|---:|---:|---:|---:|
+| onset 전 | ZoomNeXt_Baseline | 1248 | 0.302061 | 0.353429 | 0.324175 | 0.618590 | 0.186859 |
+| onset 전 | ZoomNeXt-CamLock | 1248 | 0.340204 | 0.402856 | 0.394213 | 0.551282 | 0.198664 |
+| onset 후 | ZoomNeXt_Baseline | 2494 | 0.432353 | 0.503311 | 0.468564 | 0.429431 | 0.249879 |
+| onset 후 | ZoomNeXt-CamLock | 2494 | 0.524895 | 0.619502 | 0.652476 | 0.280674 | 0.277245 |
+
+onset 전에도 IoU가 `+0.038143`, Recall이 `+0.070039` 개선되지만, onset 이후에는 개선 폭이 훨씬 커진다.
+
+| 구간 | IoU 개선 | Dice 개선 | Recall 개선 | Failure 감소 |
+|---|---:|---:|---:|---:|
+| onset 전 | `+0.038143` | `+0.049427` | `+0.070039` | `-0.067308` |
+| onset 후 | `+0.092542` | `+0.116191` | `+0.183911` | `-0.148757` |
+
+이 결과가 `ZoomNeXt-CamLock`의 핵심 의미를 보여준다. 위장 객체는 onset 전에는 시각적 단서가 약해서 어떤 모델도 안정적으로 객체를 분리하기 어렵다. 하지만 움직임이 생긴 뒤에는 객체와 배경을 구분할 수 있는 단서가 늘어나고, CamLock은 이 시점부터 refiner 출력과 이전 belief를 함께 사용해 mask를 안정적으로 회복한다. 즉 이 모델의 강점은 단순히 전체 평균 IoU를 올리는 데 있지 않고, **onset 이후 객체가 드러나는 구간에서 raw baseline보다 훨씬 안정적으로 따라붙는 것**에 있다.
+
+## 한계
+
+가장 큰 한계는 onset 판단이 여전히 `ZoomNeXt`의 1차 mask 품질에 영향을 받는다는 점이다. CamLock은 현재 frame, raw mask, 이전 belief, motion 정보를 함께 사용하지만, 출발점이 되는 1차 mask가 배경과 위장 객체를 심하게 헷갈리면 onset 위치도 부정확해질 수 있다.
+
+특히 raw baseline이 초반에 객체를 너무 작게 잡거나, 배경 texture를 foreground처럼 내보내면 다음 문제가 생긴다.
+
+- onset 전후의 confidence가 실제 객체 움직임과 맞지 않을 수 있다.
+- lock-in이 너무 늦게 걸리거나, 반대로 잘못된 위치에 걸릴 수 있다.
+- refiner가 보정할 수 있는 범위를 넘어선 raw mask 오류는 최종 mask에도 남는다.
+- onset 이후 성능은 크게 개선되지만, onset 자체를 정확히 잡는 능력은 1차 mask generator의 품질에 의해 제한된다.
+
+따라서 다음 단계의 핵심은 `CamLock` 정책을 더 복잡하게 만드는 것보다, **1차 mask를 만드는 baseline을 배경과 위장 객체를 더 잘 구분하도록 개선하는 것**이다. raw mask 단계에서 객체 후보가 더 정확해지면 onset 판단도 안정되고, CamLock의 lock-in/refine 효과도 더 크게 살아날 수 있다.
+
 상세 결과는 아래에 저장되어 있다.
 
 ```text
@@ -323,15 +354,3 @@ python tools/run_zoomnext_camlock.py \
   --analysis-dir results/ZoomNeXt-CamLock \
   --device cuda
 ```
-
-## 제외한 파일
-
-repository를 가볍게 유지하기 위해 다음 파일은 포함하지 않았다.
-
-- `MoCH`, `MoCA`, `CAD`, `CAMotion` dataset 원본
-- MoCH 전체 prediction PNG
-- MoCA/CAD/CAMotion raw prediction PNG
-- 공식 ZoomNeXt weight와 `.7z` archive
-- Python cache와 임시 산출물
-
-즉 이 repository는 **최고 성능 ZoomNeXt-CamLock 모델을 설명하고 재현하기 위한 최소 코드/체크포인트/결과 요약**만 포함한다.
