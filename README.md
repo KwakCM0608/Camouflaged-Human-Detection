@@ -77,7 +77,7 @@ motion onset / lock-in 정책
 최종 mask
 ```
 
-## ZoomNeXt
+## ZoomNeXt Baseline
 
 `ZoomNeXt`는 camouflage object detection 계열에서 강한 single-frame mask를 제공한다. 이 프로젝트에서는 다음 이유로 baseline으로 사용했다.
 
