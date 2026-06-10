@@ -1,0 +1,27 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.DS_Store
+
+# Datasets
+MoCH/
+MoCA_Video/
+CamouflagedAnimalDataset/
+CAMotion/
+
+# Generated predictions and work directories
+data/
+predictions/
+work/
+outputs/
+cache/
+
+# Large external model artifacts
+external_models/ZoomNeXt/weights/
+*.pth.tar
+*.7z
+*.zip
+
+# Keep the committed CamLock refiner checkpoint.
+!checkpoints/ZoomNeXt-CamLock/best.pth

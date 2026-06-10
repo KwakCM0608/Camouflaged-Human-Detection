@@ -1,0 +1,37 @@
+{
+  "model_name": "ZoomNeXt-CamLock",
+  "raw_mask_generator": "Official ZoomNeXt PVTv2-B5",
+  "refiner": "Causal CamLock refiner",
+  "checkpoint": "checkpoints/ZoomNeXt-CamLock/best.pth",
+  "training_data": [
+    "MoCA",
+    "CAD",
+    "CAMotion"
+  ],
+  "evaluation_data": [
+    "MoCH"
+  ],
+  "data_rule": "MoCH is prediction/evaluation only. The refiner is integrated with ZoomNeXt raw masks, not stacked on a prior CamLock output.",
+  "input_channels": [
+    "current_rgb",
+    "current_zoomnext_raw_mask",
+    "previous_belief",
+    "motion_map",
+    "frame_ratio_map",
+    "early_phase_map"
+  ],
+  "image_size": 256,
+  "width": 32,
+  "epochs": 8,
+  "best_epoch": 1,
+  "optimizer": "AdamW",
+  "learning_rate": 0.0002,
+  "batch_size": 24,
+  "moch_all_metrics": {
+    "frames": 3742,
+    "iou": 0.4632988055197571,
+    "dice": 0.5472483890716403,
+    "failure": 0.3709246392303581,
+    "boundary_f1": 0.25103724232402996
+  }
+}
