@@ -9,6 +9,19 @@
 - `MoCH`는 학습/검증에 사용하지 않고, 최종 prediction/evaluation에만 사용한다.
 - 전체 MoCH sequence를 볼 때도 미래 frame이나 미래 GT는 사용하지 않는다.
 
+## 프로젝트 제약사항
+
+이 프로젝트는 일반적인 offline video segmentation이나 prompt 기반 tracking과 다르게, 다음 제약을 전제로 한다.
+
+| 제약 | 내용 |
+|---|---|
+| 실시간성 | 현재 frame을 처리할 때 현재/과거 frame 정보만 사용한다. 미래 frame, 전체 sequence 후처리, oracle selection은 사용하지 않는다. |
+| 첫 frame prompt 없음 | 첫 frame에서 bbox, point click, text prompt, GT mask 같은 사용자 prompt를 주지 않는다. 모델은 첫 frame부터 자동으로 mask를 생성해야 한다. |
+| 자동 onset 판단 | motion onset은 GT나 수동 annotation이 아니라 현재/과거 frame의 motion history와 model confidence로만 판단한다. |
+| mask 기반 추적 | 별도의 수동 object ID 지정 없이, ZoomNeXt raw mask와 CamLock belief를 기반으로 객체 후보를 유지한다. |
+
+따라서 `ZoomNeXt-CamLock`은 첫 frame에 정답 mask나 box를 넣고 시작하는 semi-supervised VOS 모델이 아니라, **prompt 없이 시작해서 실시간 causal 방식으로 위장 객체 mask를 추정하는 모델**이다.
+
 ## 핵심 아이디어
 
 위장 객체 영상에서는 초반 frame에서 객체와 배경이 거의 구분되지 않기 때문에, 단일 frame segmentation 모델이 객체를 너무 작게 잡거나 배경을 객체처럼 잡는 경우가 많다. 이 1차 mask를 그대로 쓰면 이후 onset 판단도 그 mask에 끌려가서 불안정해진다.
