@@ -9,6 +9,36 @@
 - `MoCH`는 학습/검증에 사용하지 않고, 최종 prediction/evaluation에만 사용한다.
 - 전체 MoCH sequence를 볼 때도 미래 frame이나 미래 GT는 사용하지 않는다.
 
+## 데이터 구성
+
+이 프로젝트는 학습 source와 평가 target을 명확히 분리한다. `MoCA`, `CAD`, `CAMotion`은 CamLock refiner 학습에 사용하고, `MoCH`는 최종 일반화 성능을 확인하기 위한 평가 데이터로만 사용한다.
+
+### MoCA
+
+`MoCA`는 위장 객체가 포함된 video sequence 데이터로, 객체 외형이 배경과 강하게 섞이는 상황을 학습하는 데 사용한다. 특히 raw 1차 mask가 배경 texture에 끌리거나 객체 일부만 잡는 경우를 refiner가 보정하도록 만드는 source 역할을 한다.
+
+![MoCA example](assets/examples/MoCA_Mask_crab_1.gif)
+
+### CAD
+
+`CAD`는 동물 중심의 camouflage 데이터로, 객체와 배경의 색상, 질감, 경계가 비슷한 sample을 제공한다. MoCA만 사용할 때보다 source 분포를 넓혀, refiner가 특정 데이터셋의 appearance에만 맞춰지는 것을 줄이는 데 사용한다.
+
+![CAD example](assets/examples/CAD2016_glowwormbeetle.gif)
+
+### CAMotion
+
+`CAMotion`은 움직임 단서가 중요한 video camouflage 상황을 보강하기 위해 사용한다. CamLock이 현재 RGB와 raw mask만 보지 않고, 이전 belief와 motion map을 함께 사용하기 때문에 motion onset 전후의 temporal 변화를 학습하는 데 의미가 있다.
+
+![CAMotion example](assets/examples/Lagopus_1_CAMotion.gif)
+
+### MoCH
+
+`MoCH`는 최종 평가 전용 데이터셋이다. 학습에는 사용하지 않으며, prompt 없이 첫 frame부터 자동으로 mask를 만들고 현재/과거 frame만 사용하는 조건에서 `ZoomNeXt-CamLock`의 실제 추적 성능과 onset 전후 변화를 확인하는 데 사용한다.
+
+![MoCH example 1](assets/examples/MoCH_Filter_v_0_1.gif)
+
+![MoCH example 2](assets/examples/MoCH_Train_v_0_2.gif)
+
 ## 프로젝트 제약사항
 
 이 프로젝트는 일반적인 offline video segmentation이나 prompt 기반 tracking과 다르게, 다음 제약을 전제로 한다.
