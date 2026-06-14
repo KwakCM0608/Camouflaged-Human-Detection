@@ -335,6 +335,9 @@ tools/
   run_source_zoomnext_predictions.py # MoCA/CAD raw ZoomNeXt mask 생성
   run_source_refiner_correct.py      # refiner/loss/data utility
   run_camlock_multiframe_memory.py   # memory helper
+  run_hard_background_contrastive_generator.py # source-only hard background raw mask 실험
+  run_hardbg_wavefront_generator.py  # directional wavefront ablation
+  make_raw_visual_checks.py          # raw mask 시각 비교 helper
   evaluate_moch_baselines.py         # MoCH metric evaluation
 
 external_models/ZoomNeXt/
@@ -351,6 +354,7 @@ results/ZoomNeXt-CamLock/
 docs/
   ZoomNeXt-CamLock_Explanation.docx
   ZoomNeXt-CamLock_Project_Summary.docx
+  HardBG_SourceOnly_Experiments.md
 ```
 
 ## 실행 방법
