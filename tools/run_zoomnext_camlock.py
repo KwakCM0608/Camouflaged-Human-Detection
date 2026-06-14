@@ -202,6 +202,14 @@ def image_motion(cur_path: Path, prev_path: Path, size: int = 96) -> float:
     return float(np.abs(cur - prev).mean())
 
 
+def refiner_in_channels(exp: Experiment) -> int:
+    # RGB(3), raw mask(1), previous belief(1), motion map(1)
+    channels = 6
+    if exp.memory:
+        channels += 1
+    return channels
+
+
 def source_memory_prior(paths: list[Path], indices: list[int], current_idx: int, exp: Experiment, fallback: np.ndarray, size: int) -> np.ndarray:
     if not paths:
         return fallback
@@ -326,13 +334,10 @@ class RefinerDataset(Dataset):
         prev_unit = (prev * src.STD + src.MEAN).clamp(0, 1)
         motion = (cur_unit - prev_unit).abs().mean(dim=0, keepdim=True)
         motion_norm = (motion / (motion.mean() + 2.0 * motion.std() + 1e-6)).clamp(0, 1)
-        ratio = 0.0 if it.count <= 1 else it.index / float(it.count - 1)
-        ratio_map = torch.full((1, self.size, self.size), ratio, dtype=torch.float32)
-        early_map = torch.full((1, self.size, self.size), 1.0 if ratio < 1.0 / 3.0 else 0.0, dtype=torch.float32)
         if self.exp.memory:
-            x = torch.cat([cur, raw, prev_raw, mem_prior, motion_norm, ratio_map, early_map], dim=0)
+            x = torch.cat([cur, raw, prev_raw, mem_prior, motion_norm], dim=0)
         else:
-            x = torch.cat([cur, raw, prev_raw, motion_norm, ratio_map, early_map], dim=0)
+            x = torch.cat([cur, raw, prev_raw, motion_norm], dim=0)
 
         edge = src.boundary_map(gt.unsqueeze(0)).squeeze(0)
         if it.frame.edge_path and it.frame.edge_path.exists():
@@ -372,7 +377,7 @@ def train_refiner(args, exp: Experiment, phase: str = "main", init_checkpoint: P
     print(json.dumps({"event": "dataset", "model": exp.name, "phase": phase, "train_items": len(train_ds), "val_items": len(val_ds)}, ensure_ascii=False), flush=True)
     if not train_ds or not val_ds:
         raise RuntimeError(f"empty dataset for {exp.name}: train={len(train_ds)} val={len(val_ds)}")
-    in_ch = 9 if exp.memory else 8
+    in_ch = refiner_in_channels(exp)
     model = src.CausalRefiner(in_ch=in_ch, width=args.width).to(device)
     if init_checkpoint and init_checkpoint.exists():
         ckpt = torch.load(init_checkpoint, map_location=device)
@@ -459,7 +464,7 @@ def soft_blur_np(prob: np.ndarray, radius: float) -> np.ndarray:
 def apply_refiner(args, exp: Experiment, checkpoint: Path) -> None:
     device = torch.device(args.device)
     ckpt = torch.load(checkpoint, map_location=device)
-    in_ch = 9 if exp.memory else 8
+    in_ch = refiner_in_channels(exp)
     model = src.CausalRefiner(in_ch=in_ch, width=args.width).to(device)
     model.load_state_dict(ckpt["model"], strict=True)
     model.eval()
@@ -501,13 +506,10 @@ def apply_refiner(args, exp: Experiment, checkpoint: Path) -> None:
                     hmean, hstd = motion_score, 0.0
                 motion_onset = len(hist) >= 3 and motion_score > max(args.min_motion_onset, hmean + args.motion_std * hstd)
                 motion_norm = (motion / (motion.mean() + 2.0 * motion.std() + 1e-6)).clamp(0, 1)
-                ratio = 0.0 if count <= 1 else idx / float(count - 1)
-                ratio_map = torch.full((1, 1, args.size, args.size), ratio, device=device)
-                early_map = torch.full((1, 1, args.size, args.size), 1.0 if ratio < 1.0 / 3.0 else 0.0, device=device)
                 if exp.memory:
-                    x = torch.cat([cur, raw, prev_belief, mem_prior, motion_norm, ratio_map, early_map], dim=1)
+                    x = torch.cat([cur, raw, prev_belief, mem_prior, motion_norm], dim=1)
                 else:
-                    x = torch.cat([cur, raw, prev_belief, motion_norm, ratio_map, early_map], dim=1)
+                    x = torch.cat([cur, raw, prev_belief, motion_norm], dim=1)
                 correction, gate = model(x)
                 raw_logit = torch.logit(raw.clamp(1e-4, 1 - 1e-4))
                 net = torch.sigmoid(gate * raw_logit + (1.0 - gate) * correction)
@@ -520,7 +522,7 @@ def apply_refiner(args, exp: Experiment, checkpoint: Path) -> None:
                         state.onset_idx = idx
                 if idx == 0:
                     final = args.first_net * net_np + (1.0 - args.first_net) * raw_np
-                elif not state.locked and ratio < 1.0 / 3.0:
+                elif not state.locked:
                     final = args.early_net * net_np + args.early_raw * raw_np + args.early_prev * soft_blur_np(fallback, args.prev_blur)
                 elif state.locked:
                     prev_w = exp.low_prev_w if motion_score < hmean else exp.high_prev_w

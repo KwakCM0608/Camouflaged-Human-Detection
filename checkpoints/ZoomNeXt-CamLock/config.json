@@ -16,22 +16,25 @@
     "current_rgb",
     "current_zoomnext_raw_mask",
     "previous_belief",
-    "motion_map",
-    "frame_ratio_map",
-    "early_phase_map"
+    "motion_map"
   ],
+  "input_channel_count": 6,
   "image_size": 256,
   "width": 32,
   "epochs": 8,
-  "best_epoch": 1,
+  "best_epoch": 2,
   "optimizer": "AdamW",
   "learning_rate": 0.0002,
   "batch_size": 24,
+  "train_items": 27390,
+  "validation_items": 7520,
   "moch_all_metrics": {
     "frames": 3742,
-    "iou": 0.4632988055197571,
-    "dice": 0.5472483890716403,
-    "failure": 0.3709246392303581,
-    "boundary_f1": 0.25103724232402996
+    "iou": 0.4601457172022721,
+    "dice": 0.5435938103913908,
+    "precision": 0.60027670702408,
+    "recall": 0.5574047689790345,
+    "failure": 0.38455371459112775,
+    "boundary_f1": 0.2463712865190626
   }
 }
